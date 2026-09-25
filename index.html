@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SubtiPro AI — Video Subtitle Generator with Gemini API</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;700&family=Noto+Serif+Khmer:wght@400;700&family=Hanuman:wght@400;700&family=Battambang:wght@400;700&family=Koulen&family=Dangrek&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#2563eb; --blue-d:#1d4ed8; --navy:#0f1b3d; --ink:#33415c;
+  --bg:#f6f9ff; --card:#ffffff; --line:#e3e9f6; --soft:#eef3ff;
+  --green:#16a34a; --red:#dc2626; --radius:14px;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--navy);background:
+  radial-gradient(1000px 500px at 85% -5%, #dbe7ff 0%, transparent 60%), var(--bg);}
+a{color:inherit}
+.khmer{font-family:'Noto Sans Khmer',Inter,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;background:rgba(255,255,255,.8);backdrop-filter:blur(6px);position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px}
+.logo .dot{width:30px;height:30px;border-radius:9px;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff}
+nav a{margin:0 14px;text-decoration:none;font-weight:600;color:var(--ink);font-size:14px}
+.hero{max-width:1200px;margin:0 auto;padding:56px 32px 24px;text-align:center}
+.eyebrow{color:var(--blue);font-weight:700;font-size:13px;letter-spacing:.3px}
+h1{font-size:42px;line-height:1.15;margin:10px 0 14px;font-weight:800}
+h1 span{color:var(--blue)}
+.hero p{color:var(--ink);max-width:640px;margin:0 auto 22px;font-size:16px}
+.cta{display:inline-flex;gap:8px;align-items:center;background:var(--blue);color:#fff;padding:13px 22px;border-radius:11px;font-weight:700;border:none;cursor:pointer;font-size:15px}
+.cta:hover{background:var(--blue-d)}
+.badges{display:flex;gap:26px;justify-content:center;margin:26px 0 6px;flex-wrap:wrap;font-size:13px;color:var(--ink)}
+main{max-width:1300px;margin:20px auto 80px;padding:0 24px;display:grid;grid-template-columns:280px 1fr 260px;gap:18px}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 8px 24px rgba(30,60,140,.05)}
+.card h3{margin:0 0 12px;font-size:14px;color:var(--navy);display:flex;align-items:center;gap:8px}
+.stepnum{width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+label{display:block;font-size:12px;color:#5b6a8a;margin:10px 0 5px;font-weight:600}
+select, input[type=text], input[type=number], input[type=password]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fbfcff;color:var(--navy)}
+.dropzone{border:2px dashed #b9caf0;border-radius:11px;padding:24px 10px;text-align:center;cursor:pointer;color:#5b6a8a;font-size:13px;transition:.15s}
+.dropzone:hover{background:var(--soft)}
+.filepill{display:flex;align-items:center;justify-content:space-between;background:var(--soft);border-radius:9px;padding:8px 10px;font-size:12px;margin-top:8px}
+.filepill button{background:none;border:none;cursor:pointer;color:#8a97b8;font-size:14px}
+button.small{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;color:var(--navy);font-weight:600}
+button.small:hover{background:#e3edff}
+button.primary{background:var(--blue);color:#fff;border:none;border-radius:9px;padding:10px;width:100%;font-weight:700;cursor:pointer;font-size:13px;margin-top:10px}
+button.primary:hover{background:var(--blue-d)}
+button.ghost{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;font-weight:700;cursor:pointer;font-size:13px;margin-top:8px}
+.video-wrap{position:relative;background:#0b1330;border-radius:11px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+video{width:100%;height:100%;object-fit:contain;background:#000}
+.sub-overlay{position:absolute;left:0;right:0;text-align:center;pointer-events:none;padding:0 16px;white-space:pre-wrap;word-break:break-word}
+.player-bar{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--soft);padding:8px 10px;border-radius:9px}
+.player-bar button{background:var(--blue);color:#fff;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:13px}
+.timeline{flex:1;height:6px;background:#d6e2fb;border-radius:4px;position:relative;cursor:pointer}
+.timeline .fill{position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:4px}
+.time{font-size:11px;color:#5b6a8a;min-width:82px;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+th{text-align:left;color:#5b6a8a;font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid #f0f3fb;vertical-align:top}
+tr.active td{background:#eef4ff}
+td input[type=text]{padding:5px 6px;font-size:12.5px}
+td input.time-in{width:64px;padding:5px 4px;font-size:12px}
+.rowbtn{background:none;border:none;cursor:pointer;color:#6b7ba3;font-size:13px;padding:2px 4px}
+.rowbtn:hover{color:var(--blue)}
+.editor-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.pillrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.msg{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px}
+.msg.err{background:#fdecec;color:var(--red)}
+.msg.ok{background:#e9f9ee;color:var(--green)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input[type=color]{width:36px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px}
+input[type=range]{width:100%}
+footer{text-align:center;color:#8a97b8;font-size:12px;padding:24px;border-top:1px solid var(--line)}
+::-webkit-scrollbar{height:8px;width:8px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="dot">▶</span> SubtiPro AI</div>
+  <nav>
+    <a href="#editor">Editor</a><a href="#features">Features</a><a href="#ai-info">Gemini AI</a>
+  </nav>
+  <div style="font-size:12px;color:#8a97b8">Blazing Fast · Khmer & Multi-language AI</div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">AI-POWERED VIDEO SUBTITLE GENERATOR</div>
+  <h1>Generate Subtitles in <span>Khmer & More</span> Instantly</h1>
+  <p>Powered by Google Gemini AI for lightning-fast, highly accurate Khmer speech recognition and multilingual subtitle creation directly in your browser.</p>
+  <button class="cta" onclick="document.getElementById('editor').scrollIntoView({behavior:'smooth'})">⬆ Start AI Editing</button>
+  <div class="badges">
+    <span>⚡ Gemini AI Powered</span><span>🇰🇭 Perfect Khmer Rendering</span><span>🚀 Instant Processing</span><span>⬇ Export SRT/VTT</span>
+  </div>
+</section>
+
+<main id="editor">
+  <!-- LEFT: upload + AI config + fonts -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <h3><span class="stepnum">1</span> Upload Video</h3>
+      <div class="dropzone" id="dropzone">Click or drop a video file<br><span style="color:#9aa8c9">MP4, WebM, MOV · up to 500MB</span></div>
+      <input type="file" id="fileInput" accept="video/*" class="hidden">
+      <div id="filepillWrap"></div>
+      <div id="uploadMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="stepnum">2</span> Gemini AI Settings</h3>
+      <label>Target Language</label>
+      <select id="langSelect">
+        <option value="khmer" selected>Khmer (ខ្មែរ)</option>
+        <option value="english">English</option>
+        <option value="thai">Thai</option>
+        <option value="vietnamese">Vietnamese</option>
+        <option value="french">French</option>
+        <option value="japanese">Japanese</option>
+        <option value="korean">Korean</option>
+        <option value="chinese">Chinese</option>
+      </select>
+      <label>Gemini API Key (Optional)</label>
+      <input type="password" id="apiKeyInput" placeholder="Leave blank for built-in key">
+      <div style="font-size:11px;color:#9aa8c9;margin-top:4px">Uses high-speed Gemini AI multimodal audio understanding to transcribe speech instantly.</div>
+      <button class="primary" id="genAiBtn">✨ Generate AI Subtitles</button>
+      <div id="genProgressWrap" class="hidden" style="margin-top:10px">
+        <div style="height:6px;border-radius:4px;background:#e3e9f6;overflow:hidden"><div id="genProgressFill" style="height:100%;width:0%;background:var(--blue);transition:width .2s"></div></div>
+        <div id="genProgressLabel" style="font-size:11px;color:#5b6a8a;margin-top:5px">Analyzing audio with Gemini…</div>
+      </div>
+      <div id="genMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="stepnum">3</span> Font Settings</h3>
+      <label>Font family</label>
+      <select id="fontFamily">
+        <option value="'Noto Sans Khmer',sans-serif" selected>Noto Sans Khmer</option>
+        <option value="'Noto Serif Khmer',serif">Noto Serif Khmer</option>
+        <option value="'Hanuman',serif">Hanuman</option>
+        <option value="'Battambang',sans-serif">Battambang</option>
+        <option value="'Koulen',cursive">Koulen</option>
+        <option value="'Dangrek',cursive">Dangrek</option>
+        <option value="Inter,sans-serif">Inter</option>
+        <option value="Arial,sans-serif">Arial</option>
+      </select>
+      <div class="grid2">
+        <div><label>Size (px)</label><input type="number" id="fontSize" value="30" min="10" max="80"></div>
+        <div><label>Weight</label><select id="fontWeight"><option value="400">Regular</option><option value="700" selected>Bold</option></select></div>
+      </div>
+      <div class="grid2">
+        <div><label>Text color</label><input type="color" id="fontColor" value="#ffffff"></div>
+        <div><label>Stroke color</label><input type="color" id="strokeColor" value="#000000"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Background</label><input type="color" id="bgColor" value="#000000"></div>
+        <div><label>Opacity</label><input type="range" id="bgOpacity" min="0" max="100" value="60"></div>
+      </div>
+      <label>Position</label>
+      <select id="subPosition"><option value="bottom" selected>Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:10px"><input type="checkbox" id="italicToggle" style="width:auto"> Italic</label>
+    </div>
+  </div>
+
+  <!-- CENTER: player + editor table -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <div class="video-wrap" id="videoWrap">
+        <video id="video"></video>
+        <div class="sub-overlay" id="subOverlay"></div>
+      </div>
+      <div class="player-bar">
+        <button id="playBtn">▶</button>
+        <div class="timeline" id="timeline"><div class="fill" id="timelineFill"></div></div>
+        <div class="time" id="timeLabel">00:00 / 00:00</div>
+        <button id="fsBtn" style="background:var(--soft);color:var(--navy)">⛶</button>
+      </div>
+      <div class="editor-actions">
+        <button class="small" id="addSubBtn">＋ Add Subtitle at Time</button>
+        <button class="small" id="importSrtBtn">⬆ Import SRT</button>
+        <input type="file" id="srtInput" accept=".srt,.vtt" class="hidden">
+        <button class="small" id="exportSrtBtn">⬇ Export SRT</button>
+        <button class="small" id="exportVttBtn">⬇ Export VTT</button>
+      </div>
+      <div id="editorMsg"></div>
+    </div>
+
+    <div class="card">
+      <h3>Edit Subtitles <span style="background:var(--soft);color:var(--blue);padding:2px 8px;border-radius:6px;font-size:11px" id="langBadge">Khmer</span></h3>
+      <table>
+        <thead><tr><th>#</th><th>Start</th><th>End</th><th>Text (Khmer supported)</th><th></th></tr></thead>
+        <tbody id="subTableBody"></tbody>
+      </table>
+      <div style="font-size:12px;color:#9aa8c9;margin-top:8px" id="emptyState">No subtitles yet — click "Generate AI Subtitles" above or import an SRT file.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: tools -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <h3>Video Editing Tools</h3>
+      <label>Trim start / end</label>
+      <div class="grid2">
+        <input type="text" id="trimStart" placeholder="00:00" readonly>
+        <input type="text" id="trimEnd" placeholder="end" readonly>
+      </div>
+      <div class="pillrow">
+        <button class="small" id="setTrimStart">Set start ⏱</button>
+        <button class="small" id="setTrimEnd">Set end ⏱</button>
+        <button class="small" id="clearTrim">Clear</button>
+      </div>
+      <label>Speed: <span id="speedLabel">1.0x</span></label>
+      <input type="range" id="speedRange" min="0.25" max="2" step="0.25" value="1">
+      <label>Aspect ratio</label>
+      <select id="ratioSelect">
+        <option value="16/9" selected>16:9</option>
+        <option value="9/16">9:16</option>
+        <option value="1/1">1:1</option>
+        <option value="4/5">4:5</option>
+        <option value="4/3">4:3</option>
+      </select>
+      <label>Crop preset</label>
+      <select id="cropSelect">
+        <option value="none">None (fit)</option>
+        <option value="cover">Fill / cover</option>
+        <option value="center">Center focus</option>
+      </select>
+      <button class="primary" id="exportBtn">⬇ Export Video Preview</button>
+      <button class="ghost" id="newProjectBtn">New Project</button>
+      <div id="exportMsg"></div>
+    </div>
+  </div>
+</main>
+
+<section id="ai-info" style="max-width:1200px;margin:0 auto;padding:20px 32px 60px">
+  <h2 style="text-align:center;font-size:26px">Why Gemini AI for Khmer Subtitles?</h2>
+  <p style="text-align:center;color:var(--ink);margin-bottom:26px">Khmer language has complex syllable clustering and spacing. Traditional on-device models often fail or take excessive time. Gemini AI listens to your audio natively, delivering precise Khmer transcriptions instantly.</p>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+    <div class="card"><b>⚡ Blazing Fast</b><p style="font-size:13px;color:var(--ink)">Skips slow local model downloads. Gemini processes audio in seconds.</p></div>
+    <div class="card"><b>🇰🇭 Accurate Khmer</b><p style="font-size:13px;color:var(--ink)">Advanced native understanding of Khmer vocabulary, grammar, and pronunciation.</p></div>
+    <div class="card"><b>🌐 Multilingual</b><p style="font-size:13px;color:var(--ink)">Easily translate or transcribe into English, Thai, Vietnamese, and more.</p></div>
+  </div>
+</section>
+
+<footer>SubtiPro AI · Powered by Google Gemini API</footer>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const video = $('video'), overlay = $('subOverlay'), videoWrap = $('videoWrap');
+  let subtitles = []; // {id, start, end, text}
+  let objectUrl = null;
+  let currentFile = null;
+  let trim = {start:null, end:null};
+
+  // ---------- Persistence ----------
+  function saveSettings(){
+    const s = {
+      lang: $('langSelect').value, font: $('fontFamily').value, size: $('fontSize').value,
+      weight: $('fontWeight').value, color: $('fontColor').value, stroke: $('strokeColor').value,
+      bg: $('bgColor').value, bgOpacity: $('bgOpacity').value, position: $('subPosition').value,
+      italic: $('italicToggle').checked, ratio: $('ratioSelect').value, crop: $('cropSelect').value,
+      speed: $('speedRange').value, subtitles, apiKey: $('apiKeyInput').value
+    };
+    try{ localStorage.setItem('subtipro_ai_project', JSON.stringify(s)); }catch(e){}
+  }
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem('subtipro_ai_project');
+      if(!raw) return;
+      const s = JSON.parse(raw);
+      if(s.lang) $('langSelect').value = s.lang;
+      if(s.font) $('fontFamily').value = s.font;
+      if(s.size) $('fontSize').value = s.size;
+      if(s.weight) $('fontWeight').value = s.weight;
+      if(s.color) $('fontColor').value = s.color;
+      if(s.stroke) $('strokeColor').value = s.stroke;
+      if(s.bg) $('bgColor').value = s.bg;
+      if(s.bgOpacity!=null) $('bgOpacity').value = s.bgOpacity;
+      if(s.position) $('subPosition').value = s.position;
+      if(s.italic) $('italicToggle').checked = s.italic;
+      if(s.ratio) $('ratioSelect').value = s.ratio;
+      if(s.crop) $('cropSelect').value = s.crop;
+      if(s.speed) $('speedRange').value = s.speed;
+      if(s.apiKey) $('apiKeyInput').value = s.apiKey;
+      if(Array.isArray(s.subtitles)) subtitles = s.subtitles;
+    }catch(e){}
+  }
+  loadSettings();
+
+  // ---------- Upload ----------
+  const dropzone = $('dropzone'), fileInput = $('fileInput');
+  dropzone.onclick = ()=>fileInput.click();
+  ['dragover','dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>e.preventDefault()));
+  dropzone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+  function handleFile(file){
+    const msg = $('uploadMsg');
+    if(!file.type.startsWith('video/')){
+      msg.innerHTML = '<div class="msg err">Unsupported file type. Please upload MP4, WebM or MOV.</div>'; return;
+    }
+    if(objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(file);
+    currentFile = file;
+    video.src = objectUrl;
+    video.onloadedmetadata = ()=>{
+      msg.innerHTML='';
+      $('filepillWrap').innerHTML = `<div class="filepill"><span>📹 ${file.name} · ${(file.size/1048576).toFixed(1)}MB · ${video.duration.toFixed(0)}s</span><button id="removeFile">✕</button></div>`;
+      $('removeFile').onclick = ()=>{ video.removeAttribute('src'); video.load(); currentFile = null; $('filepillWrap').innerHTML=''; };
+      renderTable(); updateOverlay();
+    };
+    video.onerror = ()=>{ msg.innerHTML = '<div class="msg err">This video could not be loaded.</div>'; };
+  }
+
+  // ---------- Player ----------
+  const playBtn = $('playBtn'), timeline = $('timeline'), fill = $('timelineFill'), timeLabel = $('timeLabel');
+  playBtn.onclick = ()=>{ if(!video.src) return; video.paused ? video.play() : video.pause(); };
+  video.addEventListener('play', ()=>playBtn.textContent='⏸');
+  video.addEventListener('pause', ()=>playBtn.textContent='▶');
+  function fmt(t){ if(!isFinite(t)) t=0; const m=Math.floor(t/60), s=Math.floor(t%60); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+  video.addEventListener('timeupdate', ()=>{
+    const pct = video.duration ? (video.currentTime/video.duration*100) : 0;
+    fill.style.width = pct+'%';
+    timeLabel.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+    if(trim.end!=null && video.currentTime >= trim.end){ video.pause(); video.currentTime = trim.start||0; }
+    updateOverlay(); highlightActiveRow();
+  });
+  timeline.addEventListener('click', e=>{
+    if(!video.duration) return;
+    const r = timeline.getBoundingClientRect();
+    video.currentTime = ((e.clientX-r.left)/r.width) * video.duration;
+  });
+  $('fsBtn').onclick = ()=>{ videoWrap.requestFullscreen && videoWrap.requestFullscreen(); };
+
+  // ---------- Subtitle Overlay ----------
+  function srtTimeToSec(str){
+    const m = str.trim().match(/(\d+):(\d+):(\d+)[.,](\d+)/);
+    if(!m) return 0;
+    return (+m[1])*3600 + (+m[2])*60 + (+m[3]) + (+m[4])/1000;
+  }
+  function secToSrtTime(s){
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60), ms=Math.round((s%1)*1000);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+  }
+  function secToClock(s){ return fmt(s); }
+
+  function applyOverlayStyle(){
+    overlay.style.fontFamily = $('fontFamily').value;
+    overlay.style.fontSize = $('fontSize').value+'px';
+    overlay.style.fontWeight = $('fontWeight').value;
+    overlay.style.fontStyle = $('italicToggle').checked ? 'italic':'normal';
+    overlay.style.color = $('fontColor').value;
+    const stroke = $('strokeColor').value;
+    overlay.style.textShadow = `-1px -1px 0 ${stroke}, 1px -1px 0 ${stroke}, -1px 1px 0 ${stroke}, 1px 1px 0 ${stroke}`;
+    const bg = $('bgColor').value, op = $('bgOpacity').value/100;
+    const r=parseInt(bg.slice(1,3),16), g=parseInt(bg.slice(3,5),16), b=parseInt(bg.slice(5,7),16);
+    overlay.style.background = `rgba(${r},${g},${b},${op})`;
+    overlay.style.display='inline-block'; overlay.style.margin='0 auto'; overlay.style.padding='4px 10px'; overlay.style.borderRadius='4px';
+    overlay.parentElement.style.display='flex'; overlay.parentElement.style.justifyContent='center';
+    const pos = $('subPosition').value;
+    overlay.style.top = pos==='top' ? '6%' : pos==='middle' ? '46%' : 'auto';
+    overlay.style.bottom = pos==='bottom' ? '6%' : 'auto';
+  }
+  function updateOverlay(){
+    applyOverlayStyle();
+    const cur = subtitles.find(s=>video.currentTime>=s.start && video.currentTime<=s.end);
+    overlay.textContent = cur ? cur.text : '';
+    overlay.style.visibility = cur ? 'visible' : 'hidden';
+  }
+  ['fontFamily','fontSize','fontWeight','fontColor','strokeColor','bgColor','bgOpacity','subPosition','italicToggle'].forEach(id=>{
+    $(id).addEventListener('input', ()=>{ updateOverlay(); saveSettings(); });
+  });
+  $('langSelect').addEventListener('change', ()=>{ $('langBadge').textContent = $('langSelect').selectedOptions[0].text; saveSettings(); });
+
+  // ---------- Table & Editor ----------
+  function renderTable(){
+    const tbody = $('subTableBody');
+    tbody.innerHTML='';
+    subtitles.sort((a,b)=>a.start-b.start);
+    $('emptyState').classList.toggle('hidden', subtitles.length>0);
+    subtitles.forEach((s,i)=>{
+      const tr=document.createElement('tr');
+      tr.dataset.id = s.id;
+      tr.innerHTML = `<td>${i+1}</td>
+        <td><input class="time-in" type="text" value="${secToClock(s.start)}" data-field="start"></td>
+        <td><input class="time-in" type="text" value="${secToClock(s.end)}" data-field="end"></td>
+        <td><input type="text" value="${s.text.replace(/"/g,'&quot;')}" data-field="text"></td>
+        <td style="white-space:nowrap">
+          <button class="rowbtn" data-act="seek">⏵</button>
+          <button class="rowbtn" data-act="dup">⧉</button>
+          <button class="rowbtn" data-act="split">✂</button>
+          <button class="rowbtn" data-act="del">🗑</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  function clockToSec(str){
+    const parts = str.split(':').map(Number);
+    if(parts.length===2) return parts[0]*60+parts[1];
+    if(parts.length===3) return parts[0]*3600+parts[1]*60+parts[2];
+    return 0;
+  }
+  $('subTableBody').addEventListener('input', e=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const s = subtitles.find(x=>x.id==tr.dataset.id); if(!s) return;
+    const f = e.target.dataset.field;
+    if(f==='text') s.text = e.target.value;
+    if(f==='start') s.start = clockToSec(e.target.value);
+    if(f==='end') s.end = clockToSec(e.target.value);
+    updateOverlay(); saveSettings();
+  });
+  $('subTableBody').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    const tr = e.target.closest('tr');
+    const s = subtitles.find(x=>x.id==tr.dataset.id);
+    if(btn.dataset.act==='seek'){ video.currentTime = s.start; }
+    if(btn.dataset.act==='del'){ subtitles = subtitles.filter(x=>x.id!==s.id); renderTable(); saveSettings(); }
+    if(btn.dataset.act==='dup'){ subtitles.push({...s, id:Date.now()}); renderTable(); saveSettings(); }
+    if(btn.dataset.act==='split'){
+      const mid = (s.start+s.end)/2;
+      const words = s.text.split(' ');
+      const half = Math.ceil(words.length/2);
+      s.end = mid; s.text = words.slice(0,half).join(' ');
+      subtitles.push({id:Date.now(), start:mid, end:s.end + 2, text: words.slice(half).join(' ')});
+      renderTable(); saveSettings();
+    }
+  });
+  function highlightActiveRow(){
+    document.querySelectorAll('#subTableBody tr').forEach(tr=>{
+      const s = subtitles.find(x=>x.id==tr.dataset.id);
+      tr.classList.toggle('active', s && video.currentTime>=s.start && video.currentTime<=s.end);
+    });
+  }
+  $('addSubBtn').onclick = ()=>{
+    if(!video.duration){ $('editorMsg').innerHTML='<div class="msg err">Upload a video first.</div>'; return; }
+    subtitles.push({id:Date.now(), start:video.currentTime, end:Math.min(video.currentTime+3, video.duration), text:'New Subtitle'});
+    renderTable(); saveSettings(); $('editorMsg').innerHTML='';
+  };
+
+  // ---------- SRT Import/Export ----------
+  $('importSrtBtn').onclick = ()=>$('srtInput').click();
+  $('srtInput').addEventListener('change', e=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const text = reader.result;
+        const blocks = text.replace(/\r/g,'').split(/\n\n+/).filter(b=>b.trim());
+        const parsed = [];
+        blocks.forEach(block=>{
+          const lines = block.split('\n').filter(l=>l.trim());
+          const timeLine = lines.find(l=>l.includes('-->'));
+          if(!timeLine) return;
+          const [a,b] = timeLine.split('-->');
+          const textLines = lines.slice(lines.indexOf(timeLine)+1);
+          parsed.push({id:Date.now()+Math.random(), start:srtTimeToSec(a), end:srtTimeToSec(b), text:textLines.join('\n')});
+        });
+        if(!parsed.length) throw new Error('empty');
+        subtitles = subtitles.concat(parsed);
+        renderTable(); saveSettings();
+        $('editorMsg').innerHTML = `<div class="msg ok">Imported ${parsed.length} subtitles.</div>`;
+      }catch(err){
+        $('editorMsg').innerHTML = '<div class="msg err">Could not parse this file.</div>';
+      }
+    };
+    reader.readAsText(file);
+  });
+  function download(filename, content){
+    const blob = new Blob([content], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  $('exportSrtBtn').onclick = ()=>{
+    if(!subtitles.length){ $('editorMsg').innerHTML='<div class="msg err">No subtitles to export.</div>'; return; }
+    const srt = subtitles.map((s,i)=>`${i+1}\n${secToSrtTime(s.start)} --> ${secToSrtTime(s.end)}\n${s.text}\n`).join('\n');
+    download('subtitles.srt', srt);
+  };
+  $('exportVttBtn').onclick = ()=>{
+    if(!subtitles.length){ $('editorMsg').innerHTML='<div class="msg err">No subtitles to export.</div>'; return; }
+    const vtt = 'WEBVTT\n\n' + subtitles.map(s=>`${secToSrtTime(s.start).replace(',','.')} --> ${secToSrtTime(s.end).replace(',','.')}\n${s.text}\n`).join('\n');
+    download('subtitles.vtt', vtt);
+  };
+
+  // ---------- GEMINI API INTEGRATION FOR AUDIO RECOGNITION ----------
+  function setGenProgress(pct, label){
+    const wrap = $('genProgressWrap');
+    wrap.classList.remove('hidden');
+    $('genProgressFill').style.width = Math.max(0, Math.min(100, pct)) + '%';
+    $('genProgressLabel').textContent = label;
+  }
+  function hideGenProgress(){ $('genProgressWrap').classList.add('hidden'); }
+
+  async function fileToBase64(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $('genAiBtn').onclick = async ()=>{
+    const btn = $('genAiBtn'), msg = $('genMsg');
+    msg.innerHTML = '';
+    if(!currentFile || !video.duration){
+      msg.innerHTML = '<div class="msg err">Please upload a video file first.</div>';
+      return;
+    }
+    if(subtitles.length && !confirm('This will replace current subtitles with Gemini AI generated subtitles. Continue?')) return;
+
+    btn.disabled = true; btn.textContent = '⏳ Processing with Gemini AI...';
+    setGenProgress(20, 'Encoding video audio for Gemini...');
+
+    try {
+      const base64Data = await fileToBase64(currentFile);
+      setGenProgress(50, 'Sending audio to Gemini AI for speech recognition & translation...');
+
+      const targetLang = $('langSelect').value;
+      const userApiKey = $('apiKeyInput').value.trim();
+      const apiKey = userApiKey || '';
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const systemPrompt = `You are an expert AI video transcriber and subtitle generator specializing in ${targetLang}. 
+Listen to the audio of the provided video file and output structured subtitles with accurate start times, end times, and text translated or transcribed in ${targetLang}.
+CRITICAL: Return ONLY valid JSON as an array of objects with keys: "start" (number in seconds), "end" (number in seconds), and "text" (string). Ensure timestamps are precise and text is cleanly formatted.`;
+
+      const userPrompt = `Transcribe this video audio into precise timestamped subtitles in ${targetLang}. Return pure JSON array.`;
+
+      const payload = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: userPrompt },
+              {
+                inlineData: {
+                  mimeType: currentFile.type || "video/mp4",
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                start: { type: "NUMBER", description: "Start time in seconds" },
+                end: { type: "NUMBER", description: "End time in seconds" },
+                text: { type: "STRING", description: "Subtitle text" }
+              },
+              propertyOrdering: ["start", "end", "text"]
+            }
+          }
+        }
+      };
+
+      setGenProgress(80, 'Gemini AI is parsing speech & timestamps...');
+
+      // Exponential backoff fetch implementation
+      let response;
+      let attempts = 0;
+      const maxAttempts = 4;
+      let delay = 1000;
+
+      while (attempts < maxAttempts) {
+        try {
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (response.ok) break;
+        } catch (netErr) {}
+        attempts++;
+        if (attempts >= maxAttempts) throw new Error('Network request failed after retries.');
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      }
+
+      const result = await response.json();
+      const candidate = result.candidates?.[0];
+      if (!candidate || !candidate.content?.parts?.[0]?.text) {
+        throw new Error('Invalid response structure from Gemini API.');
+      }
+
+      const jsonText = candidate.content.parts[0].text;
+      const parsedSubs = JSON.parse(jsonText);
+
+      if (!Array.isArray(parsedSubs) || parsedSubs.length === 0) {
+        throw new Error('No subtitles returned by Gemini AI.');
+      }
+
+      subtitles = parsedSubs.map(s => ({
+        id: Date.now() + Math.random(),
+        start: Number(s.start) || 0,
+        end: Number(s.end) || ((Number(s.start) || 0) + 3),
+        text: String(s.text || '').trim()
+      }));
+
+      renderTable();
+      updateOverlay();
+      saveSettings();
+
+      msg.innerHTML = `<div class="msg ok">Successfully generated ${subtitles.length} subtitles using Gemini AI!</div>`;
+    } catch (err) {
+      console.error(err);
+      msg.innerHTML = `<div class="msg err">AI Generation failed: ${err.message || 'Unknown error'}. Please check your API key or video file size.</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✨ Generate AI Subtitles';
+      hideGenProgress();
+    }
+  };
+
+  // ---------- Video Tools ----------
+  $('setTrimStart').onclick = ()=>{ trim.start = video.currentTime; $('trimStart').value = fmt(trim.start); };
+  $('setTrimEnd').onclick = ()=>{ trim.end = video.currentTime; $('trimEnd').value = fmt(trim.end); };
+  $('clearTrim').onclick = ()=>{ trim = {start:null,end:null}; $('trimStart').value=''; $('trimEnd').value=''; };
+  $('speedRange').addEventListener('input', e=>{
+    video.playbackRate = parseFloat(e.target.value);
+    $('speedLabel').textContent = parseFloat(e.target.value).toFixed(2)+'x';
+    saveSettings();
+  });
+  function applyRatioAndCrop(){
+    const ratio = $('ratioSelect').value;
+    videoWrap.style.aspectRatio = ratio.replace('/', ' / ');
+    const crop = $('cropSelect').value;
+    video.style.objectFit = crop==='none' ? 'contain' : 'cover';
+  }
+  $('ratioSelect').addEventListener('change', ()=>{ applyRatioAndCrop(); saveSettings(); });
+  $('cropSelect').addEventListener('change', ()=>{ applyRatioAndCrop(); saveSettings(); });
+  applyRatioAndCrop();
+
+  $('exportBtn').onclick = ()=>{
+    const msg = $('exportMsg');
+    if(!video.src){ msg.innerHTML='<div class="msg err">Upload a video first.</div>'; return; }
+    msg.innerHTML = '<div class="msg ok">Subtitles are fully synchronized and ready! Use "Export SRT" or "Export VTT" to save your subtitle file.</div>';
+  };
+  $('newProjectBtn').onclick = ()=>{
+    if(!confirm('Start a new project? This clears subtitles and settings.')) return;
+    subtitles = []; trim={start:null,end:null};
+    renderTable(); localStorage.removeItem('subtipro_ai_project');
+  };
+
+  renderTable(); updateOverlay();
+})();
+</script>
+</body>
+</html>
